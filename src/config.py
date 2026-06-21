@@ -69,6 +69,33 @@ DROP_COLS = [
     "endlatitude", "endlongitude",
 ]
 
+# ── Corridor centroids (mean lat/lon from historical data, Bengaluru) ─────────
+# Used by dashboard to auto-populate lat/lon when corridor changes.
+CORRIDOR_CENTROIDS = {
+    "Non-corridor":           (12.981410, 77.598243),
+    "Mysore Road":            (12.957790, 77.563652),
+    "Bellary Road 1":         (13.016800, 77.586404),
+    "Tumkur Road":            (13.031459, 77.533663),
+    "Bellary Road 2":         (13.105956, 77.603271),
+    "Hosur Road":             (12.915473, 77.624664),
+    "ORR North 1":            (13.024549, 77.637439),
+    "Old Madras Road":        (12.980913, 77.629323),
+    "Magadi Road":            (12.985060, 77.523344),
+    "ORR East 1":             (12.928305, 77.669131),
+    "ORR North 2":            (13.041928, 77.558822),
+    "Bannerghata Road":       (12.896377, 77.597880),
+    "ORR East 2":             (12.975835, 77.696026),
+    "West of Chord Road":     (12.982972, 77.546340),
+    "ORR West 1":             (12.920839, 77.559128),
+    "CBD 2":                  (12.983312, 77.595046),
+    "Hennur Main Road":       (13.051147, 77.626191),
+    "IRR(Thanisandra road)":  (12.937506, 77.626945),
+    "Varthur Road":           (12.956553, 77.715936),
+    "Old Airport Road":       (12.958868, 77.661845),
+    "Airport New South Road": (13.027519, 77.633527),
+    "CBD 1":                  (12.981023, 77.606815),
+}
+
 # ── Geo clustering (KMeans k) ─────────────────────────────────────────────────
 GEO_N_CLUSTERS = 15
 

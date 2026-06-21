@@ -21,7 +21,7 @@ import numpy as np
 import joblib
 import matplotlib.pyplot as plt
 
-from src.config import MODEL_PATH, FEEDBACK_LOG, RULES
+from src.config import MODEL_PATH, FEEDBACK_LOG, RULES, CORRIDOR_CENTROIDS
 from src.recommend import recommend, fallback_recommend
 
 # ── Page config ───────────────────────────────────────────────────────────────
@@ -84,6 +84,15 @@ if tab == "Forecast & Recommend":
     st.title("Event Impact Forecast + Resource Recommendation")
     st.caption("Enter event details as they would be known at report time.")
 
+    CORRIDOR_LIST = [
+        "Non-corridor", "Mysore Road", "Bellary Road 1", "Bellary Road 2",
+        "Tumkur Road", "Hosur Road", "Bannerghata Road", "ORR North 1",
+        "ORR North 2", "ORR East 1", "ORR East 2", "ORR West 1",
+        "Old Madras Road", "Magadi Road", "West of Chord Road",
+        "Hennur Main Road", "CBD 1", "CBD 2", "Varthur Road",
+        "Old Airport Road", "Airport New South Road", "IRR(Thanisandra road)"
+    ]
+
     col1, col2 = st.columns(2)
     with col1:
         event_type   = st.selectbox("Event Type", ["unplanned", "planned"])
@@ -98,19 +107,51 @@ if tab == "Forecast & Recommend":
                                      "private_bus", "private_car", "ksrtc_bus",
                                      "truck", "taxi", "auto", "others"])
     with col2:
-        corridor     = st.selectbox("Corridor", [
-            "Non-corridor", "Mysore Road", "Bellary Road 1", "Bellary Road 2",
-            "Tumkur Road", "Hosur Road", "Bannerghata Road", "ORR North 1",
-            "ORR North 2", "ORR East 1", "ORR East 2", "ORR West 1",
-            "Old Madras Road", "Magadi Road", "West of Chord Road",
-            "Hennur Main Road", "CBD 2", "Varthur Road", "Old Airport Road"
-        ])
-        hour         = st.slider("Hour of Day (IST)", 0, 23, 8)
-        day_of_week  = st.selectbox("Day of Week", ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"])
-        dup_size     = st.number_input("Repeat-report cluster size", min_value=1, max_value=50, value=1)
+        # ── Corridor selection — drives lat/lon auto-fill ─────────────────────
+        # Track previous corridor in session state to detect changes
+        if "corridor_sel" not in st.session_state:
+            st.session_state.corridor_sel = "Non-corridor"
+        if "lat_val" not in st.session_state:
+            st.session_state.lat_val = CORRIDOR_CENTROIDS["Non-corridor"][0]
+        if "lon_val" not in st.session_state:
+            st.session_state.lon_val = CORRIDOR_CENTROIDS["Non-corridor"][1]
 
-    lat = st.number_input("Latitude", value=12.97, format="%.6f")
-    lon = st.number_input("Longitude", value=77.59, format="%.6f")
+        def on_corridor_change():
+            new_corridor = st.session_state["corridor_widget"]
+            if new_corridor != st.session_state.corridor_sel:
+                centroid = CORRIDOR_CENTROIDS.get(new_corridor,
+                           CORRIDOR_CENTROIDS["Non-corridor"])
+                st.session_state.lat_val = centroid[0]
+                st.session_state.lon_val = centroid[1]
+                st.session_state.corridor_sel = new_corridor
+
+        corridor = st.selectbox(
+            "Corridor (lat/lon auto-fills to corridor centroid)",
+            CORRIDOR_LIST,
+            key="corridor_widget",
+            on_change=on_corridor_change,
+        )
+        hour        = st.slider("Hour of Day (IST)", 0, 23, 8)
+        day_of_week = st.selectbox("Day of Week", ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"])
+        dup_size    = st.number_input("Repeat-report cluster size", min_value=1, max_value=50, value=1)
+
+    # Lat/lon: auto-populated from corridor centroid, still manually editable
+    coord_col1, coord_col2 = st.columns(2)
+    with coord_col1:
+        lat = st.number_input(
+            "Latitude (auto-filled from corridor, editable)",
+            value=float(st.session_state.lat_val),
+            format="%.6f",
+            key="lat_input",
+        )
+    with coord_col2:
+        lon = st.number_input(
+            "Longitude (auto-filled from corridor, editable)",
+            value=float(st.session_state.lon_val),
+            format="%.6f",
+            key="lon_input",
+        )
+    st.caption(f"📍 Using centroid for **{corridor}**: ({st.session_state.lat_val:.4f}, {st.session_state.lon_val:.4f})")
 
     dow_map = {"Mon":0,"Tue":1,"Wed":2,"Thu":3,"Fri":4,"Sat":5,"Sun":6}
     is_peak = hour in {5,6,19,20,21,22}
