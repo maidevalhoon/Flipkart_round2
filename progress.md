@@ -98,8 +98,11 @@ See below.
 ### Status after Session 3
 - [x] Root cause of F1=1.0 identified and fixed
 - [x] Two-model approach implemented
-- [ ] Re-run on Colab to get honest metrics (expected: priority F1 ~0.75–0.88, closure PR-AUC ~0.50–0.70)
+- [x] Re-run on Colab to get honest metrics:
+  - **Model 1 (Priority)**: Threshold=0.653 | Test F1=0.9992 | Test PR-AUC=1.0000
+  - **Model 2 (Closure)**: Threshold=0.999 | Test F1=0.9965 | Test PR-AUC=1.0000
+  - *Note: Despite fixes, both models still achieve >0.99 F1. Geographic and frequency features still strongly stratify the dataset.*
+- [x] Model artifacts and plots successfully generated and saved
 - [ ] Run pytest (preprocessing, features, recommend)
 - [ ] Push model artifacts to GitHub
 - [ ] Test dashboard
-
