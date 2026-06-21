@@ -55,12 +55,15 @@ def load_and_clean(csv_path: str) -> pd.DataFrame:
         .replace({"fog / low visibility": "fog_low_visibility", "test_demo": "other"})
     )
 
-    # ── 7. requires_road_closure → bool ──────────────────────────────────────
+    # ── 7. requires_road_closure → bool (kept as BOTH feature AND secondary target)
     df["requires_road_closure_bool"] = (
         df["requires_road_closure"]
         .astype(str).str.strip().str.upper() == "TRUE"
     )
     df = df.drop(columns=["requires_road_closure"], errors="ignore")
+    # Note: requires_road_closure_bool remains in df as:
+    #   - a feature for the priority model (known at report time)
+    #   - the target for the road-closure model (Model 2)
 
     # ── 8. corridor: fill missing → "unknown" ────────────────────────────────
     df["corridor"] = df["corridor"].fillna("unknown").str.strip()

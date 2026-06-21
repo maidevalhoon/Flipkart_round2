@@ -33,22 +33,30 @@ st.set_page_config(
 )
 
 # ── Load model ────────────────────────────────────────────────────────────────
+CLOSURE_MODEL_PATH = MODEL_PATH.replace("severity_xgb", "closure_xgb")
+
+
 @st.cache_resource
 def load_artifact():
     if not os.path.exists(MODEL_PATH):
-        return None, None, None, None
-    artifact = joblib.load(MODEL_PATH)
-    model = artifact["model"]
-    threshold = artifact["threshold"]
+        return None, None, None, None, None, None
 
-    # Load feature builder
-    builder_path = MODEL_PATH.replace(".pkl", "_builder.pkl")
+    p_art = joblib.load(MODEL_PATH)
+    priority_model = p_art["model"]
+    p_threshold = p_art["threshold"]
+
+    closure_model, c_threshold = None, None
+    if os.path.exists(CLOSURE_MODEL_PATH):
+        c_art = joblib.load(CLOSURE_MODEL_PATH)
+        closure_model = c_art["model"]
+        c_threshold = c_art["threshold"]
+
+    builder_path = MODEL_PATH.replace("severity_xgb.pkl", "severity_xgb_builder.pkl")
     builder = joblib.load(builder_path) if os.path.exists(builder_path) else None
 
-    # Load metrics
     metrics_path = os.path.join(os.path.dirname(MODEL_PATH), "metrics.json")
     metrics = json.load(open(metrics_path)) if os.path.exists(metrics_path) else {}
-    return model, threshold, builder, metrics
+    return priority_model, p_threshold, closure_model, c_threshold, builder, metrics
 
 
 @st.cache_data
@@ -60,7 +68,8 @@ def load_historical():
     return None
 
 
-model, threshold, builder, metrics = load_artifact()
+priority_model, p_threshold, closure_model, c_threshold, builder, metrics = load_artifact()
+model, threshold = priority_model, p_threshold   # aliases for existing code below
 hist_df = load_historical()
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
@@ -162,13 +171,29 @@ if tab == "Forecast & Recommend":
             })
             result["fallback_used"] = False
 
+        # ── Model 2: Road closure prediction ──────────────────────────────────
+        closure_pred, closure_proba = None, None
+        if closure_model is not None and builder is not None and not fallback_used:
+            try:
+                c_labels, c_probas = closure_model.predict_proba(X)[:, 1], None
+                c_probas = closure_model.predict_proba(X)[:, 1]
+                closure_proba = float(c_probas[0])
+                closure_pred = closure_proba >= c_threshold
+            except Exception:
+                pass
+
         # ── Display prediction ────────────────────────────────────────────────
         st.divider()
-        c1, c2, c3 = st.columns(3)
-        color = "red" if label == "High" else "green"
-        c1.metric("Predicted Severity", label)
-        c2.metric("Model Confidence", f"{proba:.1%}" if proba is not None else "Fallback")
-        c3.metric("Decision Threshold", f"{threshold:.2f}" if threshold else "N/A")
+        st.subheader("Model Predictions")
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Severity (Model 1)", label)
+        c2.metric("Severity Confidence", f"{proba:.1%}" if proba is not None else "Fallback")
+        if closure_pred is not None:
+            c3.metric("Road Closure (Model 2)", "YES" if closure_pred else "No")
+            c4.metric("Closure Confidence", f"{closure_proba:.1%}")
+        else:
+            c3.metric("Road Closure", "YES" if requires_closure else "No (input)")
+            c4.metric("Threshold", f"{threshold:.2f}" if threshold else "N/A")
 
         if result.get("fallback_used"):
             st.info("ℹ️ Fallback rule used (model unavailable or low-confidence zone)")
@@ -285,23 +310,39 @@ elif tab == "Model Report":
     models_dir = os.path.dirname(MODEL_PATH)
 
     if metrics:
-        t = metrics.get("xgb_test", {})
-        v = metrics.get("xgb_val", {})
+        p = metrics.get("priority", {})
+        cl = metrics.get("closure", {})
+        pt = p.get("test", {}); pv = p.get("val", {})
+        ct = cl.get("test", {}); cv = cl.get("val", {})
+
+        st.subheader("Model 1 — Priority Severity (High vs Low)")
         c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Test F1 (High)", f"{t.get('f1_high', 0):.4f}")
-        c2.metric("Test PR-AUC",    f"{t.get('prauc', 0):.4f}")
-        c3.metric("Val F1 (High)",  f"{v.get('f1_high', 0):.4f}")
-        c4.metric("Threshold",      f"{metrics.get('tuned_threshold', 0.5):.3f}")
+        c1.metric("Test F1",      f"{pt.get('f1_pos', 0):.4f}")
+        c2.metric("Test PR-AUC",  f"{pt.get('prauc', 0):.4f}")
+        c3.metric("Val F1",       f"{pv.get('f1_pos', 0):.4f}")
+        c4.metric("Threshold",    f"{p.get('threshold', 0.5):.3f}")
+
+        if ct:
+            st.subheader("Model 2 — Road Closure (True vs False)")
+            d1, d2, d3, d4 = st.columns(4)
+            d1.metric("Test F1 (closure)", f"{ct.get('f1_pos', 0):.4f}")
+            d2.metric("Test PR-AUC",       f"{ct.get('prauc', 0):.4f}")
+            d3.metric("Val F1",            f"{cv.get('f1_pos', 0):.4f}")
+            d4.metric("Threshold",         f"{cl.get('threshold', 0.5):.3f}")
     else:
-        st.info("Train the model to see metrics.")
+        st.info("Train both models to see metrics (run the Colab notebook).")
 
     col1, col2 = st.columns(2)
-    fi_path = os.path.join(models_dir, "feature_importance.png")
-    cm_path = os.path.join(models_dir, "confusion_matrix.png")
-    if os.path.exists(fi_path):
-        col1.image(fi_path, caption="Feature Importances", use_column_width=True)
-    if os.path.exists(cm_path):
-        col2.image(cm_path, caption="Confusion Matrix (Test)", use_column_width=True)
+    for fname, caption in [
+        ("priority_feature_importance.png", "Priority — Feature Importances"),
+        ("priority_confusion_matrix.png",   "Priority — Confusion Matrix (Test)"),
+        ("closure_feature_importance.png",  "Closure — Feature Importances"),
+        ("closure_confusion_matrix.png",    "Closure — Confusion Matrix (Test)"),
+    ]:
+        fpath = os.path.join(models_dir, fname)
+        if os.path.exists(fpath):
+            col1.image(fpath, caption=caption, use_column_width=True)
+            col1, col2 = col2, col1  # alternate columns
 
     st.subheader("Feedback Log")
     if os.path.exists(FEEDBACK_LOG):
