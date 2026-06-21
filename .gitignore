@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+.venv/
+venv/
+# data/processed/  ← keep raw CSV tracked; ignore only processed outputs
+data/processed/*.parquet
+models/
+*.pkl
+*.parquet
+.DS_Store
+.ipynb_checkpoints/
+feedback_log.csv
