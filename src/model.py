@@ -209,10 +209,10 @@ if __name__ == "__main__":
 
     # Model 1: priority
     builder, X_tr, y_tr, X_v, y_v, X_te, y_te = build_features(train, val, test)
-    # Model 2: closure (same builder, same X, different y)
-    _, y_tr_c = builder.transform_secondary(train)
-    _, y_v_c  = builder.transform_secondary(val)
-    _, y_te_c = builder.transform_secondary(test)
+    # Model 2: closure labels come directly from the dataframe
+    y_tr_c = train["requires_road_closure_bool"].astype(int).values
+    y_v_c  = val["requires_road_closure_bool"].astype(int).values
+    y_te_c = test["requires_road_closure_bool"].astype(int).values
 
     train_and_evaluate(
         X_tr, y_tr, X_v, y_v, X_te, y_te,

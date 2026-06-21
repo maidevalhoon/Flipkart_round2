@@ -115,12 +115,11 @@ class FeatureBuilder:
         X = X.reindex(columns=self._train_cols, fill_value=0)
         return X, y
 
-    def transform_secondary(self, df: pd.DataFrame):
-        """Return (X, y) for the road-closure target using the same frozen features."""
-        df2 = df.copy()
-        y2 = df2[SECONDARY_TARGET].astype(int).values if SECONDARY_TARGET in df2.columns else None
-        X, _ = self.transform(df2, target_col=TARGET_COL)
-        return X, y2
+    def y_closure(self, df: pd.DataFrame):
+        """Extract road-closure labels from a dataframe. No feature building needed."""
+        if SECONDARY_TARGET not in df.columns:
+            raise KeyError(f"Column '{SECONDARY_TARGET}' not found. Run preprocessing first.")
+        return df[SECONDARY_TARGET].astype(int).values
 
 
 # ─────────────────────────────────────────────────────────────────────────────
