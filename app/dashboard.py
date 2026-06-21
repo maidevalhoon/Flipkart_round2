@@ -227,8 +227,10 @@ if tab == "Forecast & Recommend":
                 c_probas = closure_model.predict_proba(X_c)[:, 1]
                 closure_proba = float(c_probas[0])
                 closure_pred = closure_proba >= c_threshold
-            except Exception as e:
-                st.caption(f"Closure model inference skipped: {e}")
+            except Exception:
+                # Stale artifact (trained before latest code changes).
+                # Retrain on Colab to fix. Show nothing to the user.
+                closure_pred, closure_proba = None, None
 
         # ── Display prediction ────────────────────────────────────────────────
         st.divider()
@@ -240,8 +242,8 @@ if tab == "Forecast & Recommend":
             c3.metric("Road Closure (Model 2)", "YES" if closure_pred else "No")
             c4.metric("Closure Confidence", f"{closure_proba:.1%}")
         else:
-            c3.metric("Road Closure", "YES" if requires_closure else "No (input)")
-            c4.metric("Threshold", f"{threshold:.2f}" if threshold else "N/A")
+            c3.metric("Road Closure", "YES" if requires_closure else "No")
+            c4.metric("Closure Model", "Retrain needed")
 
         if result.get("fallback_used"):
             st.info("ℹ️ Fallback rule used (model unavailable or low-confidence zone)")
