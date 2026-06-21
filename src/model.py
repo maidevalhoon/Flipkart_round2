@@ -107,6 +107,14 @@ def train_closure_model(X_train, y_train, X_val, y_val, X_test, y_test, save_dir
     print(f"  Class balance — TRUE: {y_train.sum()} | FALSE: {(y_train==0).sum()}")
     print("█"*55)
 
+    # Drop the integer version of the target — it IS the target, keeping it
+    # means the model predicts the label from itself (100%/0% trivial accuracy).
+    leakage_cols = ["requires_road_closure_int", "requires_road_closure_bool"]
+    X_train = X_train.drop(columns=[c for c in leakage_cols if c in X_train.columns])
+    X_val   = X_val.drop(  columns=[c for c in leakage_cols if c in X_val.columns])
+    X_test  = X_test.drop( columns=[c for c in leakage_cols if c in X_test.columns])
+    print(f"  Dropped leakage cols: {leakage_cols} → {X_train.shape[1]} features remain")
+
     dummy = DummyClassifier(strategy="most_frequent")
     dummy.fit(X_train, y_train)
     evaluate(dummy, X_val, y_val, label="Dummy baseline (val)", pos_label=1)
@@ -126,7 +134,12 @@ def train_closure_model(X_train, y_train, X_val, y_val, X_test, y_test, save_dir
     _plot_cm(test_res["cm"], ["No Closure", "Closure"], save_dir,
              "closure_confusion_matrix.png", "Closure Model — Test Confusion Matrix")
 
-    joblib.dump({"model": xgb, "threshold": threshold}, CLOSURE_MODEL_PATH)
+    # Save feature columns so dashboard drops the same leakage cols at inference
+    joblib.dump({
+        "model": xgb,
+        "threshold": threshold,
+        "feature_cols": X_train.columns.tolist(),   # closure model uses fewer cols
+    }, CLOSURE_MODEL_PATH)
     return xgb, threshold, {"val": val_res, "test": test_res, "threshold": threshold}
 
 

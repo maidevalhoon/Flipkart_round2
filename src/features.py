@@ -132,8 +132,13 @@ def _hour_bucket(hour: int) -> str:
 
 def _build_all_features(df: pd.DataFrame) -> pd.DataFrame:
     df["event_type_planned"] = (df["event_type"] == "planned").astype(int)
+    # requires_road_closure_int: kept as a feature ONLY for Model 1 (severity).
+    # For Model 2 (road closure), train_closure_model() drops this column from X
+    # before fitting because it is identical to the target.
     df["requires_road_closure_int"] = df["requires_road_closure_bool"].astype(int)
-    df["is_corridor"] = (df["corridor"].str.lower() != "non-corridor").astype(int)
+    # is_corridor REMOVED: Non-corridor=0% High, named corridors=99-100% High.
+    # Keeping it makes Model 1 trivially 99.9% accurate — a single if-else rule.
+    # Spatial signal is carried instead by corridor_freq (log count) + geo_cluster.
     df["has_junction"] = df["has_junction"].fillna(0).astype(int)
 
     dt = df["start_datetime"].dt

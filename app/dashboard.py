@@ -216,12 +216,19 @@ if tab == "Forecast & Recommend":
         closure_pred, closure_proba = None, None
         if closure_model is not None and builder is not None and not fallback_used:
             try:
-                c_labels, c_probas = closure_model.predict_proba(X)[:, 1], None
-                c_probas = closure_model.predict_proba(X)[:, 1]
+                # Drop leakage columns before Model 2 inference.
+                # requires_road_closure_int is identical to the target — must not be used.
+                leakage = ["requires_road_closure_int", "requires_road_closure_bool"]
+                X_c = X.drop(columns=[c for c in leakage if c in X.columns])
+                # Align to the exact columns the closure model was trained on
+                c_art = joblib.load(CLOSURE_MODEL_PATH)
+                c_cols = c_art.get("feature_cols", X_c.columns.tolist())
+                X_c = X_c.reindex(columns=c_cols, fill_value=0)
+                c_probas = closure_model.predict_proba(X_c)[:, 1]
                 closure_proba = float(c_probas[0])
                 closure_pred = closure_proba >= c_threshold
-            except Exception:
-                pass
+            except Exception as e:
+                st.caption(f"Closure model inference skipped: {e}")
 
         # ── Display prediction ────────────────────────────────────────────────
         st.divider()
