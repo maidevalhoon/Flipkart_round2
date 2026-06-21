@@ -151,7 +151,7 @@ All thresholds centralized in a `RULES` config dict at top of file for easy judg
 No predicted-vs-actual pairing in source data → ship the mechanism, not a trained online loop.
 
 **`feedback_log.csv` schema:**
-`event_id, predicted_severity, predicted_prob, recommended_manpower, recommended_barricades, actual_severity, actual_resolution_minutes, actual_manpower_used, operator_override, notes, logged_at`
+`event_id, timestamp, event_cause, predicted_severity, predicted_prob, recommended_manpower, recommended_barricades, diversion_suggested, actual_severity, actual_resolution_mins, actual_manpower_used, operator_override, notes, logged_at`
 
 - On each dashboard prediction, append the prediction row (actual_* blank).
 - Operator fills `actual_*` post-event (or it's auto-filled from a re-exported CSV via `status`/`closed_datetime` → `actual_resolution_minutes`, capped/winsorized at 99th pct to kill the bulk-close artifacts noted in EDA: mean 7,800 min / max ~2M min are administrative, not real).

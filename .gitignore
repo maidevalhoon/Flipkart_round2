@@ -11,4 +11,4 @@ models/
 *.parquet
 .DS_Store
 .ipynb_checkpoints/
-feedback_log.csv
+# feedback_log.csv is intentionally tracked (schema + demo entries)

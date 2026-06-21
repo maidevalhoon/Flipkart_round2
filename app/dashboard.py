@@ -186,16 +186,22 @@ if tab == "Forecast & Recommend":
             for rule in result["rationale"]:
                 st.write(f"• {rule}")
 
-        # ── Append to feedback log ────────────────────────────────────────────
+        # ── Append to feedback log (same schema as notebook cell 7b) ─────────────
         log_row = {
-            "event_id": f"UI-{datetime.datetime.now().isoformat()}",
-            "predicted_severity": label,
-            "predicted_prob": round(proba, 4) if proba else None,
-            "recommended_manpower": result["manpower_count"],
+            "event_id":               f"UI-{datetime.datetime.now().isoformat()}",
+            "timestamp":              datetime.datetime.now().isoformat(),
+            "event_cause":            event_cause,
+            "predicted_severity":     label,
+            "predicted_prob":         round(proba, 4) if proba else None,
+            "recommended_manpower":   result["manpower_count"],
             "recommended_barricades": result["barricade_count"],
-            "actual_severity": "", "actual_resolution_minutes": "",
-            "actual_manpower_used": "", "operator_override": "",
-            "notes": "", "logged_at": datetime.datetime.now().isoformat(),
+            "diversion_suggested":    result["diversion_suggested"],
+            "actual_severity":        "",
+            "actual_resolution_mins": "",
+            "actual_manpower_used":   "",
+            "operator_override":      "",
+            "notes":                  "",
+            "logged_at":              datetime.datetime.now().isoformat(),
         }
         log_df = pd.DataFrame([log_row])
         write_header = not os.path.exists(FEEDBACK_LOG)
@@ -300,7 +306,9 @@ elif tab == "Model Report":
     st.subheader("Feedback Log")
     if os.path.exists(FEEDBACK_LOG):
         flog = pd.read_csv(FEEDBACK_LOG)
+        total = len(flog)
+        filled = flog["actual_severity"].astype(str).str.strip().ne("").sum()
         st.dataframe(flog, use_container_width=True)
-        st.caption(f"{len(flog)} predictions logged")
+        st.caption(f"{total} predictions logged | {filled} with actual outcome filled")
     else:
         st.info("No predictions logged yet. Use the Forecast tab.")
