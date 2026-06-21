@@ -55,8 +55,14 @@ All implementation tracked here. Updated in place — append entries, do not rew
 
 ---
 
-## Session 2 — (fill in after Colab run)
+## Session 2 — 2026-06-21 (Colab run)
 - [ ] Test results (pytest pass/fail counts)
-- [ ] Model metrics (Test F1 High, PR-AUC, threshold)
-- [ ] Any column/feature adjustments needed
-- [ ] Dashboard screenshots
+- [x] Model metrics:
+  - **Dummy (val)** (threshold=0.50): F1 (High): 0.7564 | PR-AUC: 0.6083
+  - **LogReg (val)** (threshold=0.50): F1 (High): 1.0000 | PR-AUC: 1.0000
+  - **XGBoost (val)** (threshold=0.96): F1 (High): 1.0000 | PR-AUC: 1.0000
+  - **XGBoost (TEST)** (threshold=0.96): F1 (High): 0.9983 | PR-AUC: 1.0000
+  - **Threshold tuned**: 0.961 -> estimated precision=1.000 at recall≥0.8
+  - **Test Accuracy**: 1.00
+  - Models, plots, and metrics successfully saved to `/content/Flipkart_round2/models/`
+
